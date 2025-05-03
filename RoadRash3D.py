@@ -851,7 +851,7 @@ def main():
     glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB | GLUT_DEPTH)
     glutInitWindowSize(1000, 800)
     glutInitWindowPosition(0, 0)
-    glutCreateWindow(b"3D Car Model with OpenGL")
+    glutCreateWindow(b"Road Rash 3D")
     init()
     glutDisplayFunc(showScreen)
     glutKeyboardFunc(keyboardListener)
