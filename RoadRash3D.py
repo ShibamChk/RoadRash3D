@@ -12,10 +12,11 @@ car_speed = 15
 key_state = {b'w': False, b'a': False, b's': False, b'd': False}
 lane_centers = [-200, -100, 0, 100, 200]
 enemy_cars = [
-    {'x': -100, 'y': -200, 'color': (0.8, 0.1, 0.1), 'speed': 8.9, 'status': 'normal', 'spin_angle': 0, 'spin_timer': 0, 'boost_timer': 0 , 'has_damaged_player': False},
-    {'x': 0, 'y': -320, 'color': (0.1, 0.8, 0.1), 'speed': 8.7, 'status': 'normal', 'spin_angle': 0, 'spin_timer': 0, 'boost_timer': 0 , 'has_damaged_player': False},
-    {'x': 100, 'y': -440, 'color': (0.1, 0.1, 0.8), 'speed': 8.8, 'status': 'normal', 'spin_angle': 0, 'spin_timer': 0, 'boost_timer': 0 ,'has_damaged_player': False}
+    {'x': -100, 'y': -200, 'color': (0.8, 0.1, 0.1), 'speed': random.uniform(8.5, 9.2), 'status': 'normal', 'spin_angle': 0, 'spin_timer': 0, 'boost_timer': 0, 'has_damaged_player': False},
+    {'x': 0, 'y': -320, 'color': (0.1, 0.8, 0.1), 'speed': random.uniform(8.5, 9.2), 'status': 'normal', 'spin_angle': 0, 'spin_timer': 0, 'boost_timer': 0, 'has_damaged_player': False},
+    {'x': 100, 'y': -440, 'color': (0.1, 0.1, 0.8), 'speed': random.uniform(8.5, 9.2), 'status': 'normal', 'spin_angle': 0, 'spin_timer': 0, 'boost_timer': 0, 'has_damaged_player': False}
 ]
+
 # Add road scroll offset
 road_scroll = 0
 first_person_view = False
@@ -24,17 +25,17 @@ look_angle_y = 0
 lane_width = 100
 road_width = lane_width * 5
 segment_length = 300
-bullets = []  # List of bullets
+bullets = []
 bullet_speed = 50
 
-hit_count = {} # Track hits per AI
+hit_count = {} # Track hits per enemy car
 for i in range(len(enemy_cars)):
     hit_count[i] = 0
 heart_timer = 0
 
 life_pickup = None
 last_obstacle_hit_time = 0
-damage_cooldown_timer = 0  # cooldown in frames (~60 = 1 second)
+damage_cooldown_timer = 0
 
 
 bullet_limit = 10
@@ -87,7 +88,7 @@ def draw_three_lane_road():
             dash_top = i * segment_length + 100
             dash_bottom = dash_top - 60
             glBegin(GL_QUADS)
-            glVertex3f(x - 2, dash_bottom, 1)  # Thin rectangle (width ~4)
+            glVertex3f(x - 2, dash_bottom, 1)  # Thin rectangle (lane marks )
             glVertex3f(x + 2, dash_bottom, 1)
             glVertex3f(x + 2, dash_top, 1)
             glVertex3f(x - 2, dash_top, 1)
@@ -116,8 +117,6 @@ def draw_starting_line():
     glVertex3f(150, 5, 1)
     glVertex3f(-150, 5, 1)
     glEnd()
-
-
 
 
 def draw_car(x, y, z, color=(0, 0.8, 0), spin_angle=0):
@@ -187,18 +186,15 @@ def draw_first_person_skeleton():
     glPushMatrix()
     x, y, z = car_pos
 
-    # Align with camera eye position for accurate interior frame
     glTranslatef(x, y + 40, z + 30)  # just ahead of camera
 
-    # Dashboard / Hood — matching car body width
+    # Hood
     glColor3f(0.2, 0.2, 0.2)
     glPushMatrix()
     glTranslatef(0, 30, -10)  # position aligned with first-person eye
-    glScalef(75, 40, 10)  # width ~car width, length reduced
+    glScalef(75, 40, 10)
     glutSolidCube(1)
     glPopMatrix()
-
-
 
     # Top Windshield Bar
     glColor3f(0.1, 0.1, 0.1)
@@ -226,47 +222,13 @@ def draw_first_person_skeleton():
 
 
 
-def draw_steering_overlay():
-    if not first_person_view:
-        return
-
-    glMatrixMode(GL_PROJECTION)
-    glPushMatrix()
-    glLoadIdentity()
-    gluOrtho2D(0, 1000, 0, 800)
-    glMatrixMode(GL_MODELVIEW)
-    glPushMatrix()
-    glLoadIdentity()
-
-    # Draw simple circle as wheel
-    glColor3f(0.4, 0.4, 0.4)
-    glBegin(GL_POLYGON)
-    for angle in range(0, 360, 10):
-        rad = math.radians(angle)
-        glVertex2f(500 + 50 * math.cos(rad), 150 + 50 * math.sin(rad))
-    glEnd()
-
-    # Center bar
-    glColor3f(0.1, 0.1, 0.1)
-    glBegin(GL_QUADS)
-    glVertex2f(495, 140)
-    glVertex2f(505, 140)
-    glVertex2f(505, 160)
-    glVertex2f(495, 160)
-    glEnd()
-
-    glPopMatrix()
-    glMatrixMode(GL_PROJECTION)
-    glPopMatrix()
-    glMatrixMode(GL_MODELVIEW)
-
 def draw_shapes():
     glPushMatrix()
     draw_car(car_pos[0], car_pos[1], car_pos[2], (0, 0.8, 0))
     for car in enemy_cars:
         draw_car(car['x'], car['y'], 0, car['color'], spin_angle=car['spin_angle'])
 
-    # Draw bullets
+    #  bullets
     glColor3f(1, 1, 0)
     for b in bullets:
         glPushMatrix()
@@ -301,7 +263,7 @@ def draw_gun_pointer():
     glRotatef(-look_angle_x, 0, 0, 1)
     glRotatef(-90, 1, 0, 0)  # point forward along Y
 
-    # Draw the gun pointer as a cylinder
+    #  the gun pointer as a cylinder
     quad = gluNewQuadric()
     gluCylinder(quad, 1.5, 0.5, 40, 10, 10)  # thin cone
     glPopMatrix()
@@ -314,11 +276,11 @@ def fire_bullet():
     if not first_person_view or available_bullets <= 0:
         return
 
-    # Calculate direction based on look angles
+    #  direction based on look angles
     rad_x = math.radians(look_angle_x)
     rad_y = math.radians(look_angle_y)
 
-    # Bullet starts at the tip of the gun (aligned with gun pointer)
+    # Bullet starts at the tip of the gun
     gun_x = car_pos[0] + math.sin(rad_x) * 20
     gun_y = car_pos[1] + 40 + math.cos(rad_x) * 20
     gun_z = car_pos[2] + 30 + math.sin(rad_y) * 20
@@ -339,8 +301,6 @@ def fire_bullet():
 
     bullets.append(bullet)
     available_bullets -= 1
-
-
 
 
 
@@ -376,8 +336,6 @@ def draw_heart_pickup(x, y, z):
 
     glPopMatrix()
 
-# AI cars avoid each other and the player if they're about to collide
-
 
 def chase_player_with_ais():
     for car in enemy_cars:
@@ -393,9 +351,11 @@ def chase_player_with_ais():
             if random.random() < 0.05:
                 car['x'] += random.choice([-10, 0, 10])
         else:
-            # --- Close enough: try to align with player's X ---
             if abs(dx) > 5:
-                direction = 1 if dx > 0 else -1
+                if dx > 0:
+                    direction = 1
+                else:
+                    direction = -1
                 car['x'] += direction * 2  # Smooth tracking
 
         # Stay on the road
@@ -405,7 +365,7 @@ def chase_player_with_ais():
 def handle_collisions():
     global player_health , last_bump_time
 
-    # --- Player vs AI car collisions ---
+    # --- Player vs enemy car collisions ---
     for car in enemy_cars:
         if car['status'] != 'normal':
             continue
@@ -413,7 +373,7 @@ def handle_collisions():
         if is_colliding({'x': car_pos[0], 'y': car_pos[1]}, car):
             dx = car['x'] - car_pos[0]
 
-            # Only reduce health if this car hasn't already done so
+            # Only reduce life if this car hasn't already done so
             if 'has_damaged_player' not in car or car['has_damaged_player'] == False:
                 player_health = max(0, player_health - 1)
                 last_bump_time = time.time()
@@ -425,11 +385,11 @@ def handle_collisions():
                 car['status'] = 'spinning'
                 car['spin_timer'] = 30
 
-            # Decrease player health for any collision
+            # Decrease player life for any collision
             player_health = max(0, player_health - 1)
             last_bump_time = time.time()  # Reset bump timer
 
-    # --- AI cars colliding with each other ---
+    # --- enemy cars colliding with each other ---
     for i in range(len(enemy_cars)):
         for j in range(i + 1, len(enemy_cars)):
             car1 = enemy_cars[i]
@@ -473,17 +433,23 @@ def avoid_rear_collisions():
         if car['status'] != 'normal':
             continue
 
-        # Calculate relative position to player
+        #  relative position to player
         dx = car['x'] - car_pos[0]
         dy = car['y'] - car_pos[1]
 
         # Only consider cars behind and approaching player
         if dy < 0 and abs(dx) < 50:  # If within same lane and behind
             distance = abs(dy)
-            closing_speed = car['speed'] - car_speed if not key_state[b'w'] else car['speed']
+            if not key_state[b'w']:
+                closing_speed = car['speed'] - car_speed
+            else:
+                closing_speed = car['speed']
 
-            # Calculate time until collision
-            time_to_collision = distance / closing_speed if closing_speed > 0 else float('inf')
+            #  time until collision
+            if closing_speed > 0:
+                time_to_collision = distance / closing_speed
+            else:
+                time_to_collision = float('inf')
 
             # If collision imminent within 2 seconds
             if time_to_collision < 2.0:
@@ -525,7 +491,7 @@ def reset_game():
     obstacles.clear()
     life_pickup = None
     heart_timer = 0
-    first_person_view = False  # Reset to third-person camera
+    first_person_view = False
     look_angle_x = 0
     look_angle_y = 0
     game_over = False
@@ -535,10 +501,14 @@ def reset_game():
     damage_cooldown_timer = 0
     enemy_kill_count = 0
 
-    # Reset AI cars with random colors (excluding player's color)
+    # Reset enemy cars with random colors (excluding player's color)
     player_color = (0, 0.8, 0)
-    color_pool = [(0.8, 0.1, 0.1), (0.1, 0.8, 0.1), (0.1, 0.1, 0.8),
-                  (0.9, 0.5, 0.2), (0.5, 0.5, 0.9), (0.6, 0.2, 0.7)]
+    color_pool = []
+    for i in range(6):
+        r = random.uniform(0.0, 1.0)
+        g = random.uniform(0.0, 1.0)
+        b = random.uniform(0.0, 1.0)
+        color_pool.append((r, g, b))
 
     filtered_colors = []
     for c in color_pool:
@@ -700,7 +670,7 @@ def idle():
                 obstacles.remove(obs)
             break
 
-    # --- AI Car Collision with Player ---
+    # --- enemy car Collision with Player ---
     for car in enemy_cars:
         if car['status'] != 'normal':
             continue
@@ -719,11 +689,11 @@ def idle():
                 car['status'] = 'spinning'
                 car['spin_timer'] = 30
 
-    # --- AI Car Behavior ---
+    # --- enemy car Behavior ---
     chase_player_with_ais()
     avoid_rear_collisions()
 
-    # --- AI Car Updates ---
+    # --- enemy car Updates ---
     for car in enemy_cars:
         if car['status'] == 'spinning':
             car['spin_angle'] += 15
@@ -750,19 +720,19 @@ def idle():
 
         car['y'] += adjusted_speed
 
-        # Respawn AI car if it goes too far ahead of player
+        # Respawn enemy car if it goes too far ahead of player
         if car['y'] > car_pos[1] + 800:
             car['x'] = random.choice(lane_centers)
             car['y'] = car_pos[1] - random.randint(400, 700)
             car['has_damaged_player'] = False
 
-    # --- Bullet Updates ---
+    # --- Bullet moving ---
     for bullet in bullets:
         bullet['x'] += bullet['vx']
         bullet['y'] += bullet['vy']
         bullet['z'] += bullet['vz']
 
-    # --- Bullet Collision with AI Cars ---
+    # --- Bullet Collision with enemy cars ---
     to_remove = []
     eliminated = False
     for i, car in enumerate(enemy_cars):
@@ -772,7 +742,7 @@ def idle():
             if (
                     abs(bullet['x'] - car['x']) < 30 and
                     abs(bullet['y'] - car['y']) < 40 and
-                    abs(bullet['z']) < 30  # or abs(bullet['z'] - expected_z)
+                    abs(bullet['z']) < 30
             ):
 
                 hit_count[i] += 1
@@ -808,9 +778,6 @@ def idle():
     glutPostRedisplay()
 
 
-
-
-
 def showScreen():
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
     glLoadIdentity()
@@ -825,7 +792,7 @@ def showScreen():
 
 
 
-    draw_text(10, 770, f"3D Car Racing Game")
+    draw_text(10, 770, f"ROAD RASH-3D")
     draw_text(10, 740, f"Hold W + A/D to steer. Press R to reset.")
     draw_text(10, 710, f"Bullets left: {available_bullets}/10")
     draw_text(10, 690, f"Kills: {enemy_kill_count}")
@@ -846,12 +813,18 @@ def init():
     # Reset player car position
     car_pos = [0, 0, 0]  # Start at starting line
 
-    # Reset AI cars positions at starting line with random lane offsets
-    lanes = [-200, -100, 0, 100, 200]
+    # Reset enemy cars positions at starting line with random lane offsets
+    lanes = [-200, -100, 0, 100, 200] #defined so that it dosent clash with the player
     random.shuffle(lanes)
 
-    # Define a color pool and shuffle it too
-    color_pool = [(0.8, 0.1, 0.1), (0.1, 0.8, 0.1), (0.1, 0.1, 0.8), (0.9, 0.5, 0.2), (0.5, 0.5, 0.9)]
+    # Define a color pool
+    color_pool = [
+        (random.random(), random.random(), random.random()),
+        (random.random(), random.random(), random.random()),
+        (random.random(), random.random(), random.random()),
+        (random.random(), random.random(), random.random()),
+        (random.random(), random.random(), random.random())
+    ]
     random.shuffle(color_pool)
 
     enemy_cars.clear()
@@ -869,9 +842,7 @@ def init():
             'boost_timer': 0,
             'has_damaged_player': False
         })
-    glClearColor(0.53, 0.81, 0.92, 1.0)  # Sky blue (RGB for daylight sky)
-
-
+    glClearColor(0.53, 0.81, 0.92, 1.0)  # Sky blue
 
 
 
